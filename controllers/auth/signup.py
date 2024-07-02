@@ -4,6 +4,7 @@ from models.auth import Signup
 from db.mongodb import Users
 from utils.auth import get_hashed_password, validate_password
 from fastapi_versioning import version
+from fastapi.exceptions import RequestValidationError
 
 router = APIRouter()
 
@@ -33,6 +34,7 @@ async def create_user(request: Signup):
                 "userName": request.userName,
                 "email": request.email,
                 "password": get_hashed_password(request.password),
+                "role": request.role
             }
             user_data = Users.insert_one(user_data)
             insert_id = str(user_data.inserted_id)
@@ -48,8 +50,9 @@ async def create_user(request: Signup):
             else status.HTTP_422_UNPROCESSABLE_ENTITY
         )
         message = error.content if hasattr(error, "content") else str(error)
-
+        
         return JSONResponse(
             status_code=code,
             content={"error": f"{message}"},
         )
+        
