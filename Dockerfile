@@ -14,7 +14,7 @@ COPY . /app
 
 RUN pip install -r requirements.txt
 # Install dependencies
-RUN pip install  langchain-community langchain-openai langchain-text-splitters
+RUN pip install  langchain-community langchain-openai langchain-text-splitters faiss-cpu langchainhub
 
 # RUN pip install langchain-google-community==1.0.2
 

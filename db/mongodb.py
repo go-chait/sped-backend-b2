@@ -16,3 +16,7 @@ db = client[DB_NAME]
 print("Connected to MongoDB...")
 Users = db.users
 Sessions = db.session
+
+DataTable = db.DataTable
+FileMappings = db.file_mappings
+UrlMappings = db.url_mappings
