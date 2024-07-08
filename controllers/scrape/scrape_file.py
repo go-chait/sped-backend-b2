@@ -7,10 +7,11 @@ import os
 import base64
 import tempfile
 from langchain_text_splitters import CharacterTextSplitter
-from controllers.scrape.table import get_mapping, set_mapping, update_data_table
+from controllers.scrape.table import update_data_table
 from core.security.security import require_auth
-from db.mongodb import FileMappings
+from db.mongodb import Users
 from models.scrape import FileRequest
+from bson import ObjectId
 
 router = APIRouter()
 
@@ -22,22 +23,22 @@ async def scrape_and_store_file(request: FileRequest, auth: dict = Depends(requi
     name = request.name
     content_type = request.content_type
     content = request.content
-    
+
     if content_type.lower() != 'pdf':
         raise HTTPException(status_code=400, detail="Unsupported content type. ('pdf' is allowed)")
-    
+
     try:
         file_data = base64.b64decode(content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error decoding file content: {str(e)}")
-    
+
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
             temp_file.write(file_data)
             temp_file_path = temp_file.name
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error writing temp file: {str(e)}")
-    
+
     try:
         loader = PyPDFLoader(temp_file_path)
         pages = loader.load_and_split()
@@ -46,29 +47,32 @@ async def scrape_and_store_file(request: FileRequest, auth: dict = Depends(requi
     except Exception as e:
         os.remove(temp_file_path)
         raise HTTPException(status_code=500, detail=f"Error scraping PDF content: {str(e)}")
-    
+
     os.remove(temp_file_path)
-    
+
     try:
         embeddings = OpenAIEmbeddings()
         save_dir = os.path.join('stored_embeds')
-        
+
         if os.path.exists(os.path.join(save_dir, 'index.faiss')):
-            #  Load existing FAISS index
             db = FAISS.load_local(save_dir, embeddings, allow_dangerous_deserialization=True)
-            # Add new documents and their embeddings to the existing FAISS index
             db.add_documents(docs)
         else:
-            # Create a new FAISS index with the documents
             db = FAISS.from_documents(docs, embeddings)
-        
-        # Save the updated FAISS index
+
         db.save_local(save_dir)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing embeddings: {str(e)}")
-    
+
     try:
-        update_data_table(name, content_type, 'scraped', auth['userId'])
+        user =  Users.find_one({"_id":  ObjectId(auth['userId'])})
+        if not user:
+            print(f"User with ID {auth['userId']} not found.")
+            raise HTTPException(status_code=404, detail="User not found")
+
+        role = user.get('role', 'unknown')
+
+        update_data_table(name, content_type, 'scraped', auth['userId'], role)
         return {"message": "Scraped content and stored embeddings successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating data table: {str(e)}")
