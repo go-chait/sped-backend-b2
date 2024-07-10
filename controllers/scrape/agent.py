@@ -37,14 +37,15 @@ agent = create_openai_tools_agent(llm=llm, tools=tools, prompt=prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools)
 
 class URLRequest(BaseModel):
-    url: str
+    # url: str
+    query: str
 
 @router.post('/summarize-website')
 async def summarize_website(request: URLRequest):
-    url = request.url
+    query = request.query
     
     try:
-        query = f"Please summarize the content of the following website: {url}"
+        # query = f"Please summarize the content of the following website: {url}"
 
         # Perform the summarization using the retriever tool
         response =  agent_executor.invoke({"input": query})

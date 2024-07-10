@@ -14,8 +14,9 @@ router = APIRouter()
 def get_user(userId: str, auth: dict = Depends(require_auth)):
     try:
         userId = ObjectId(userId)
-
-        user = Users.find_one({"_id": userId}, {"password": 0})
+        print("User ID: ")
+        print(userId)
+        user = Users.find_one({"_id": userId})
 
         if user is None:
             return JSONResponse(
