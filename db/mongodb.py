@@ -20,3 +20,4 @@ Sessions = db.session
 DataTable = db.DataTable
 FileMappings = db.file_mappings
 UrlMappings = db.url_mappings
+Conversations = db.conversations

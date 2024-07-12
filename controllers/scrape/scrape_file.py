@@ -83,7 +83,7 @@ async def scrape_and_store_file(request: FileRequest, auth: dict = Depends(requi
     name = request.name
     content_type = request.content_type
     content = request.content
-    print("HI!")
+    # print("HI!")
     # Check if the authenticated user has the role "user"
     try:
         user =  Users.find_one({"_id": ObjectId(auth['userId'])})
@@ -141,7 +141,7 @@ async def scrape_and_store_file(request: FileRequest, auth: dict = Depends(requi
         raise HTTPException(status_code=500, detail=f"Error processing embeddings: {str(e)}")
 
     try:
-        print("HIIIII!")
+        # print("HIIIII!")
         update_data_table(name, content_type, 'scraped', auth['userId'], role)
         return {"message": "Scraped content and stored embeddings successfully"}
     except Exception as e:

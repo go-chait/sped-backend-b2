@@ -14,7 +14,7 @@ def create_retriever_tool_from_directory( k: int):
     base_directory = os.path.join('stored_embeds')
       
     embeddings = load_embeddings(base_directory)
-    retriever = embeddings.as_retriever(search_type='similarity', search_kwargs={'k': k})
+    retriever = embeddings.as_retriever(search_type='similarity', search_kwargs={'k': k, 'max_content_length': 1000})
     
     retriever_tool = create_retriever_tool(
     retriever,
