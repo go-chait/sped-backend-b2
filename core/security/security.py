@@ -24,7 +24,7 @@ def require_auth(authorization: str = Header(None)):
         # Verify the token's signature
         decoded_token = jwt.decode(token, secret, algorithms=[algorithm])
         # user = Users.find_one({"_id": ObjectId(str(user_id))})
-
+        print(decoded_token)
         # Check token expiration
         if "exp" in decoded_token:
             current_time = datetime.utcnow().timestamp()

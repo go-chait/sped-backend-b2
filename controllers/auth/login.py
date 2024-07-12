@@ -12,9 +12,7 @@ router = APIRouter()
 @version(1)
 async def login(request: Login):
     try:
-        print("111")
         user = Users.find_one({"email": request.email})
-        print("211")
         if user is None:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -29,6 +27,7 @@ async def login(request: Login):
             )
 
         user["_id"] = str(user["_id"])
+        # must not return password, drop it here 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
