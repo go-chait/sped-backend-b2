@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -44,7 +43,7 @@ class ChatRequest(BaseModel):
 
 @router.post('/summarize-website')
 async def summarize_website(request: ChatRequest):
-    print("REQUEST",request)
+    print("REQUEST", request)
     user_id = request.user_id
     question = request.question
     print("user id", user_id)
@@ -60,8 +59,6 @@ async def summarize_website(request: ChatRequest):
 
         tools = [iep_retriever_tool, sped_retriever_tool]
 
-
-
         # Prompt
         prompt = ChatPromptTemplate.from_messages(
             [
@@ -71,20 +68,24 @@ async def summarize_website(request: ChatRequest):
             ]
         )
 
-        # Create the runnable
-        runnable = prompt | llm
+        # Define the select_chat_agent function
+        def select_chat_agent(llm, tools, prompt):
+            runnable = prompt | llm
+            return RunnableWithMessageHistory(
+                runnable,
+                get_session_history,
+                input_messages_key="input",
+                history_messages_key="history",
+                tools=tools
+            )
 
-        with_message_history = RunnableWithMessageHistory(
-            runnable,
-            get_session_history,
-            input_messages_key="input",
-            history_messages_key="history",
-        )
+        # Create the agent
+        agent = select_chat_agent(llm, tools, prompt)
 
         query = f"{question}"
 
-        # Perform the summarization using the retriever tools with context
-        response = with_message_history.invoke(
+        # Perform the summarization using the agent
+        response = agent.invoke(
             {"input": query},
             config={"configurable": {"session_id": user_id}}
         )
