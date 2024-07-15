@@ -7,6 +7,7 @@ from routes.auth import auth_routers
 from routes.sessions import sessions_router
 from routes.users import users_router
 from routes.scrape import scrape_router
+from controllers.agent.agentapi import router as agent_router
 
 app = FastAPI()
 
@@ -36,6 +37,8 @@ app.include_router(users_router, prefix="/users", tags=["User"])
 app.include_router(sessions_router, prefix="/session", tags=["Session"])
 
 app.include_router(scrape_router, prefix="/scrape", tags=["Scrape"])
+
+app.include_router(agent_router)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
