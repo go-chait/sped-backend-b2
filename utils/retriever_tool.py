@@ -1,7 +1,7 @@
 import os
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
-from langchain.tools.retriever import create_retriever_tool
+from langchain.vectorstores import FAISS
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.retrievers import EnsembleRetriever
 from dotenv import load_dotenv
 import logging
 
@@ -10,34 +10,25 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
     raise ValueError("Did not find openai_api_key, please add an environment variable `OPENAI_API_KEY` which contains it, or pass `openai_api_key` as a named parameter.")
 
-def create_retriever_tool_from_directory(k: int):
+def create_ensemble_retriever(user_id: str, k: int):
     try:
-        base_directory = os.path.join('stored_embeds')
-        embeddings = load_embeddings(base_directory)
-        retriever = embeddings.as_retriever(search_type='similarity', search_kwargs={'k': k})
-        retriever_tool = create_retriever_tool(
-            retriever,
-            "SPED_Retriever_Tool",
-            "This retriever tool uses embeddings from stored documents to find similar content based on semantic similarity. It is particularly effective for summarizing web pages and finding related information.",
-        )
-        return retriever_tool
-    except Exception as e:
-        logging.error(f"Error creating retriever tool from directory: {e}")
-        raise
+        base_directory_iep = os.path.join('stored_embeds', user_id)
+        base_directory_sped = os.path.join('stored_embeds')
 
-def create_iep_retriever_tool(user_id: str, k: int):
-    try:
-        base_directory = os.path.join('stored_embeds', user_id)
-        embeddings = load_embeddings(base_directory)
-        retriever = embeddings.as_retriever(search_type='similarity', search_kwargs={'k': k})
-        iep_retriever_tool = create_retriever_tool(
-            retriever,
-            f"IEP_Retriever_Tool_{user_id}",
-            "This retriever tool uses IEP embeddings from stored documents to find similar content based on semantic similarity. It is particularly effective for analyzing IEP documents and finding related information.",
+        iep_embeddings = load_embeddings(base_directory_iep)
+        sped_embeddings = load_embeddings(base_directory_sped)
+
+        iep_retriever = iep_embeddings.as_retriever(search_type='similarity', search_kwargs={'k': k})
+        sped_retriever = sped_embeddings.as_retriever(search_type='similarity', search_kwargs={'k': k})
+
+        ensemble_retriever = EnsembleRetriever(
+            retrievers=[iep_retriever, sped_retriever],
+            weights=[0.5, 0.5]
         )
-        return iep_retriever_tool
+
+        return ensemble_retriever
     except Exception as e:
-        logging.error(f"Error creating IEP retriever tool for user {user_id}: {e}")
+        logging.error(f"Error creating ensemble retriever: {e}")
         raise
 
 def load_embeddings(directory: str):

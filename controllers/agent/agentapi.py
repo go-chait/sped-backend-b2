@@ -8,27 +8,26 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 import os
 import logging
-from utils.retriever_tool import create_retriever_tool_from_directory, create_iep_retriever_tool
+from utils.retriever_tool import create_ensemble_retriever
 from db.mongodb import Conversations
 import datetime
 
 router = APIRouter()
 
-# Load environment variables
 load_dotenv()
 open_ai_key = os.getenv('OPENAI_API_KEY')
 
-# Ensure the API key is set
+
 if not open_ai_key:
     raise ValueError("OPEN_AI_KEY environment variable not set")
 
-# LLM
+
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=open_ai_key)
 
-# Set k value for retriever tool
-k = 3  # Set the value of k as needed
 
-# Global store for in-memory chat histories
+k = 3
+
+
 store = {}
 
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
@@ -49,15 +48,9 @@ async def summarize_website(request: ChatRequest):
     print("user id", user_id)
 
     try:
-        # Create the IEP retriever tool for the specific user
-        iep_retriever_tool = create_iep_retriever_tool(user_id, k)
-        print("Agent IEP")
-
-        # Create the SPED retriever tool
-        sped_retriever_tool = create_retriever_tool_from_directory(k)
-        print("Agent SPED")
-
-        tools = [iep_retriever_tool, sped_retriever_tool]
+        # Create the ensemble retriever tool
+        ensemble_retriever_tool = create_ensemble_retriever(user_id, k)
+        print("Ensemble Retriever Tool Created")
 
         # Prompt
         prompt = ChatPromptTemplate.from_messages(
@@ -69,18 +62,18 @@ async def summarize_website(request: ChatRequest):
         )
 
         # Define the select_chat_agent function
-        def select_chat_agent(llm, tools, prompt):
+        def select_chat_agent(llm, retriever, prompt):
             runnable = prompt | llm
             return RunnableWithMessageHistory(
                 runnable,
                 get_session_history,
                 input_messages_key="input",
                 history_messages_key="history",
-                tools=tools
+                retriever=retriever
             )
 
         # Create the agent
-        agent = select_chat_agent(llm, tools, prompt)
+        agent = select_chat_agent(llm, ensemble_retriever_tool, prompt)
 
         query = f"{question}"
 
